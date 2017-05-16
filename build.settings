@@ -1,0 +1,143 @@
+---------------------------------------------------------------------------------
+-- Tuki
+-- Alberto Vera Espitia
+-- GeekBucket 2016
+---------------------------------------------------------------------------------
+
+settings =
+{
+
+    splashScreen = 
+    {
+        enable = false
+    },
+
+	orientation =
+	{
+		-- Supported values for orientation:
+		-- portrait, portraitUpsideDown, landscapeLeft, landscapeRight
+
+		default = "portrait"
+	},
+	
+	excludeFiles =
+	{
+		-- Include only the necessary icon files on each platform
+		iphone = { "Icon-*dpi.png", },
+		android = { "Icon.png", "Icon-Small-*.png", "Icon*@2x.png", },
+	},
+    
+    plugins =
+    {
+        ["plugin.facebook.v4"] =
+        {
+            publisherId = "com.coronalabs"
+        },
+        ["CoronaProvider.native.popup.social"] =
+        {
+            publisherId = "com.coronalabs"
+        },
+        ["plugin.qrscanner"] = 
+        {
+            publisherId = 'com.spiralcodestudio'
+        },
+        ["plugin.OneSignal"] =
+        {
+            publisherId = "com.onesignal",
+        },
+        ["plugin.google.play.services"] =
+        {
+            publisherId = "com.coronalabs",
+            supportedPlatforms = { android=true, ["android-kindle"]=true },
+        },
+    },
+
+	--
+	-- iOS Section
+	--
+	iphone =
+	{
+		plist =
+		{
+			UIStatusBarHidden = false,
+			UIPrerenderedIcon = true, -- set to false for "shine" overlay
+            UIBackgroundModes = {"remote-notification"},
+            UIApplicationExitsOnSuspend = false,
+            FacebookAppID = "1091330010907264",  --replace XXXXXXXXXX with your Facebook App ID
+            CFBundleURLTypes =
+            {
+                { CFBundleURLSchemes = { "fb1091330010907264", } }  --replace XXXXXXXXXX with your Facebook App ID
+            },
+            
+            -- Whitelist Facebook Servers for Network Requests
+            NSAppTransportSecurity = 
+            {
+                NSAllowsArbitraryLoads = true
+            },
+            
+            UIRequiredDeviceCapabilities = {"location-services", "gps" },
+		 	NSLocationWhenInUseUsageDescription = "Get commerce by location.",
+
+            -- Whitelist Facebook Apps
+            LSApplicationQueriesSchemes = 
+            {   
+                "fb",
+                "fbapi20130214",
+                "fbapi20130410",
+                "fbapi20140410",
+                "fbapi20140116",
+                "fbapi20150313",
+                "fbapi20150629",
+                "fbauth",
+                "fbauth2",
+                "fb-messenger-api20140430",
+            },
+
+			CFBundleIconFiles =
+			{
+                "Icon.png",
+                "Icon@2x.png",
+                "Icon-60.png",
+                "Icon-60@2x.png",
+                "Icon-60@3x.png",
+                "Icon-72.png",
+                "Icon-72@2x.png",
+                "Icon-76.png",
+                "Icon-76@2x.png",
+                "Icon-167.png",
+                "Icon-Small-40.png",
+                "Icon-Small-40@2x.png",
+                "Icon-Small-50.png",
+                "Icon-Small-50@2x.png",
+                "Icon-Small.png",
+                "Icon-Small@2x.png",
+                "Icon-Small@3x.png"
+			},
+			
+            UIAppFonts = {
+                "Lato-Regular.ttf",
+                "Lato-Italic",
+                "Lato-Bold.ttf",
+                "Lato-Light.ttf",
+                "Lato-Heavy.ttf",
+                "Lato-HeavyItalic.ttf",
+                
+            },
+		}
+	},
+	
+	--
+	-- Android Section
+	--
+	android =
+	{
+        facebookAppId = "1091330010907264",
+		usesPermissions =
+		{
+			"android.permission.INTERNET",
+            "android.permission.CALL_PHONE",
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+		}
+	},
+}
