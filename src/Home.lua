@@ -64,124 +64,132 @@ end
 -- @param data datos para el chart
 -- @param size tamaño del chart 
 ------------------------------------
-function doGraph(goal, total, data, size)
+function doGraph(info, data, size)
     
-    -- Variables of size
-    local wC = 700
+    -- General Variables
+    local wC = 640
     local hC = 400
-    local redW = 1
-    local redH = math.floor(total/200)
+    local initX = 10
+    local initY = 0
+    info.day = tonumber(info.day)
+    info.goal = tonumber(info.goal)
+    info.total = tonumber(info.total)
+    info.lastDay = tonumber(info.lastDay)
     
-    -- Reducir escala vertical
-    if total < 25 then redH = .0625
-    elseif total < 50 then redH = .125
-    elseif total < 100 then redH = .25
-    elseif total < 200 then redH = .5 end
+    local porcDays = info.day / info.lastDay
+    local todayGoal = math.floor(info.goal * porcDays)
+    local maxPoints = todayGoal
+    if todayGoal < info.total then maxPoints = info.total end
     
+    -- Parametros para Escalar 
     if size == 'medium' then
         wC = 320
         hC = 200
-        redW = 2
-        redH = redH * 2
     end
-    
-    -- Variables build
-    local iniV = data[1].total
-    local endV = data[#data].total
-    local jumpPix = math.floor(wC / #data)
-    local initX = (math.floor( wC / 2 )) * -1
-    local initY = (hC/2)
-    
     -- Create container
-    local graph = display.newContainer( wC, hC )
-    local bg = display.newRect( 0, 0, wC, hC )
+    local graph = display.newContainer( wC+60, hC )
+    local bg = display.newRect( 0, 0, wC+60, hC )
     bg:setFillColor( .97 )
     graph:insert( bg )
     
-    -- Array dots
-    local noD = 0
+     -- Array dots
+    local jumpW = wC / (#data)
+    local jumpH = hC / maxPoints
     local dots = {initX, initY}
     local dotsY = {initY}
     local newY = initY
     for z = 1, #data, 1 do 
-        newY = newY - (data[z].total/redH)
-        table.insert( dots, (initX + ( jumpPix * z ) ) )
+        newY = newY - (data[z].total*jumpH)
+        table.insert( dots, (initX + ( jumpW * z ) ) )
         table.insert( dots, newY )
         table.insert( dotsY, newY )
-    end    
-    
-    for z = 1, #dotsY, 1 do 
     end
-    
-    
     -- End Shape
-    initX = dots[1]
-    initY = dots[2]
-    endX = dots[#dots-1]
-    endY = dots[#dots]
+    local endX = dots[#dots-1]
+    local endY = dots[#dots]
     table.insert( dots, endX + 20)
     table.insert( dots, endY)
     table.insert( dots, endX + 20)
-    table.insert( dots, initY + 500)
-    table.insert( dots, initX - 20)
-    table.insert( dots, initY + 500)
-    table.insert( dots, initX - 20)
+    table.insert( dots, initY+20)
+    table.insert( dots, initX-20)
+    table.insert( dots, initY+20)
+    table.insert( dots, initX-20)
     table.insert( dots, initY)
     
-    -- Make goal
-    if tonumber(goal) <= tonumber(total)  then
-        local goalY = initY - (goal/redH)
-        local goalL = display.newLine( initX, goalY, initX+wC, goalY )
-        goalL:setStrokeColor( 1, 0, 0, 1 )
-        goalL.strokeWidth = 2
-        goalL.alpha = .3
-        graph:insert( goalL )
-    end
-    
     -- Make polygon
-    local nendY = endY
-    if nendY < 0 then nendY = nendY * -1 end
-    local midY = (hC - (initY + nendY)) / 2
-    local polygon = display.newPolygon(0, 250 + midY, dots)
+    local chPol = (hC-(info.total*jumpH))/2
+    local polygon = display.newPolygon(0, chPol+10, dots)
     polygon:setFillColor( unpack(cBPurA)  )
     polygon:setStrokeColor( unpack(cBPurL) )
     polygon.strokeWidth = 6
     graph:insert( polygon )
+    -- Ajustar graph
+    graph.width = polygon.width - 40
+    local mwG = graph.width/2
+    local mhG = hC/2
     
-    -- Ajust Graph
-    local strech = ( wC / 2 ) - endX
-    bg.width = bg.width - strech
-    graph.width = graph.width - strech + 30
-    graph.height = graph.height + 30
+    -- Make goal
+    local fixH = 0
+    local hGoal =  mhG - (todayGoal*jumpH)
+    if maxPoints > todayGoal then 
+        fixH = (hC - (todayGoal*jumpH))/26
+    end
+    
+    local dimens = { (mwG*(-1))/40, (mhG)/40, (mwG)/40, (hGoal)/40 }
+    local xdot = (mwG / 15)
+    local ydot = (mhG / 15)
+    for z = 1, 30, 1 do 
+        local minDot = display.newLine( unpack(dimens) )            
+        minDot:setStrokeColor( unpack(cBTur) )
+        minDot.alpha = .7
+        minDot.strokeWidth = 4
+        minDot.x = (xdot*(z-1)) - mwG 
+        minDot.y = mhG - (ydot*(z-1)) + (fixH*(z-1))
+        --minDot.y = (minDot.y + fixH) - minDot.y 
+        graph:insert( minDot )
+    end 
+    polygon:toFront()
     
     -- Make blocks
-    local graphM = bg.width/2
-    local block1 = display.newRect( (graphM+10)*-1, 0, 20, hC + 30 )
+    graph.width = graph.width + 20
+    graph.height = graph.height + 20
+    local block1 = display.newRect( (mwG*-1)-10, 0, 20, hC + 20 )
     graph:insert( block1 )
-    local block2 = display.newRect( (graphM+10), 0, 20, hC + 30 )
+    local block2 = display.newRect( mwG+10, 0, 20, hC + 20 )
     graph:insert( block2 )
-    local block3 = display.newRect( 0, (hC/2)+10, wC + 30, 20 )
+    local block3 = display.newRect( 0, (mhG*-1)-10, wC + 20, 20 )
     graph:insert( block3 )
+    local block4 = display.newRect( 0, mhG+10, wC + 20, 20 )
+    graph:insert( block4 )
     
     -- Make mark
-    local sizeMark = 22
-    if size == 'medium' then sizeMark = 15 end
-    local markC = display.newContainer( sizeMark, hC + 30 )
-    markC.x = graphM
-    markC.limX1 = graphM * -1
-    markC.limX2 = graphM
+    local sizeMark = 15
+    if size == 'medium' then sizeMark = 12 end
+    local markC = display.newContainer( sizeMark, hC + 20  )
+    markC.x = mwG
+    markC.limX1 = mwG * -1
+    markC.limX2 = mwG
     graph:insert( markC )
-    markC:addEventListener( "touch", dragLine )
-    local bgM = display.newRect( 0, 0, sizeMark, hC + 30 )
+    local bgM = display.newRect( 0, 0, sizeMark, hC )
     bgM.alpha = .01
     markC:insert( bgM )
-    local line = display.newRect( 0, 0, 1, hC )
-    line:setFillColor( .5 )
+    local line = display.newRect( 0, 0, 3, hC )
+    line:setFillColor( .6 )
     markC:insert( line )
-    local mark = display.newCircle(  0, endY, sizeMark/2 )
+    local mark = display.newCircle(  0, mhG-(info.total*jumpH), sizeMark/2 )
     mark:setFillColor( unpack(cBPur) )
     markC:insert(mark)
     
+    -- Listener Touch
+    graph:addEventListener( "touch", dragLine )
+    
+    
+    --[[
+    
+    
+    
+    
+    ]]
     return graph
 end
 
@@ -198,7 +206,7 @@ function showResults(data)
     
     -- Afiliaciones
     local txtTitleA = display.newText({
-        text = data.newUserT,
+        text = data.newUser.total,
         x = midW - 200, y = posY + 60, width = 400,
         font = fontRegular,   
         fontSize = 120, align = "right"
@@ -224,7 +232,7 @@ function showResults(data)
     txtDateA:setFillColor( unpack(cBlack) )
     grpGraph:insert(txtDateA)
     
-    local graph = doGraph(data.newUserM, data.newUserT, data.newUserD, 'large')
+    local graph = doGraph(data.newUser, data.newUserD, 'large')
     graph:translate(midW,  posY + 380)
     grpGraph:insert(graph)
     
@@ -232,7 +240,7 @@ function showResults(data)
     
     -- Visitas
     local txtTitleV = display.newText({
-        text = data.pointsT,
+        text = data.points.total,
         x = midWL, y = posY, width = 400,
         font = fontRegular,   
         fontSize = 80, align = "center"
@@ -258,14 +266,14 @@ function showResults(data)
     txtDateV:setFillColor( unpack(cBlack) )
     grpGraph:insert(txtDateV)
     
-    local graph = doGraph(data.pointsM, data.pointsT, data.pointsD, 'medium')
+    local graph = doGraph(data.points, data.pointsD, 'medium')
     graph:translate(midWL,  posY + 230)
     grpGraph:insert(graph)
     
     
     -- Redenciones
     local txtTitleR = display.newText({
-        text = data.redemT,
+        text = data.redem.total,
         x = midWR, y = posY, width = 400,
         font = fontRegular,   
         fontSize = 80, align = "center"
@@ -291,7 +299,7 @@ function showResults(data)
     txtDateR:setFillColor( unpack(cBlack) )
     grpGraph:insert(txtDateR)
     
-    local graph = doGraph(data.redemM, data.redemT, data.redemD, 'medium')
+    local graph = doGraph(data.redem, data.redemD, 'medium')
     graph:translate(midWR,  posY + 230)
     grpGraph:insert(graph)
     
