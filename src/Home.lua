@@ -30,23 +30,33 @@ local bullets = {}
 -- @param event objeto evento
 ------------------------------------
 function dragLine( event )
-    local t = event.target
+    local t = event.target.markC
     if event.phase == "began" then
         -- Init variables
         t.isFocus = true
-        t.xStart = t.x
-        t.eStart = event.x
     elseif t.isFocus then
         if event.phase == "moved" then
             -- Then drag
-            local newX = (t.xStart - (t.eStart - event.x))
-            if newX < t.limX1 then
-                t.x = t.limX1
-            elseif newX > t.limX2 then
-                t.x = t.limX2
+            local currentX = event.x - event.target.x
+            if t.xMin > currentX then
+                t.x = t.xMin
+            elseif t.xMax < currentX then
+                t.x = t.xMax
             else
-                t.x = newX
+                t.x = currentX
             end
+            --toDots
+            poscX = math.floor(t.x + t.xMax)
+            print(poscX)
+            if poscX < 1 then
+                t.circle.y = t.toDots[1] - t.yMax
+            elseif poscX > #t.toDots then
+                t.circle.y = t.toDots[#t.toDots] - t.yMax
+            else
+                t.circle.y = t.toDots[poscX] - t.yMax
+            end
+                
+            
         elseif event.phase == "ended" or event.phase == "cancelled" then
             -- We end the movement by removing the focus from the object
             t.isFocus = false
@@ -92,7 +102,7 @@ function doGraph(info, data, size)
     bg:setFillColor( .97 )
     graph:insert( bg )
     
-     -- Array dots
+    -- Array dots
     local jumpW = wC / (#data)
     local jumpH = hC / maxPoints
     local dots = {initX, initY}
@@ -104,6 +114,26 @@ function doGraph(info, data, size)
         table.insert( dots, newY )
         table.insert( dotsY, newY )
     end
+    
+    -- Crear posiciones en Y
+    local nextX, midX, jumpY, noX
+    local lastX = 0
+    local toDots = {}
+    for z = 1, #data, 1 do 
+        nextX = math.floor(( jumpW * z ))
+        midX = math.floor((nextX - lastX) / 2) + lastX
+        noX =  nextX - lastX
+        jumpY = math.floor(dotsY[z+1] - dotsY[z]) /noX
+
+        local count = 0
+        for y = lastX, nextX, 1 do 
+            count = count + 1
+            toDots[y] = math.floor(count * jumpY) + dotsY[z]
+        end
+        lastX = nextX + 1
+    end
+    
+    
     -- End Shape
     local endX = dots[#dots-1]
     local endY = dots[#dots]
@@ -165,20 +195,24 @@ function doGraph(info, data, size)
     -- Make mark
     local sizeMark = 15
     if size == 'medium' then sizeMark = 12 end
-    local markC = display.newContainer( sizeMark, hC + 20  )
-    markC.x = mwG
-    markC.limX1 = mwG * -1
-    markC.limX2 = mwG
-    graph:insert( markC )
+    graph.markC = display.newContainer( sizeMark, hC + 20  )
+    graph.markC.x = mwG
+    graph.markC.xMin = mwG * -1
+    graph.markC.xMax = mwG
+    graph.markC.yMax = mhG * -1
+    graph.markC.toDots = toDots
+    graph.markC.limX1 = mwG * -1
+    graph.markC.limX2 = mwG
+    graph:insert( graph.markC )
     local bgM = display.newRect( 0, 0, sizeMark, hC )
     bgM.alpha = .01
-    markC:insert( bgM )
+    graph.markC:insert( bgM )
     local line = display.newRect( 0, 0, 3, hC )
     line:setFillColor( .6 )
-    markC:insert( line )
-    local mark = display.newCircle(  0, mhG-(info.total*jumpH), sizeMark/2 )
-    mark:setFillColor( unpack(cBPur) )
-    markC:insert(mark)
+    graph.markC:insert( line )
+    graph.markC.circle = display.newCircle(  0, mhG-(info.total*jumpH), sizeMark/2 )
+    graph.markC.circle:setFillColor( unpack(cBPur) )
+    graph.markC:insert(graph.markC.circle)
     
     -- Listener Touch
     graph:addEventListener( "touch", dragLine )
