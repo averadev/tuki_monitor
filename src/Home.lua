@@ -19,6 +19,7 @@ local scene = composer.newScene()
 
 
 -- Variables
+local txt = {}
 local bullets = {}
 
 ---------------------------------------------------------------------------------
@@ -36,7 +37,8 @@ function dragLine( event )
         t.isFocus = true
     elseif t.isFocus then
         if event.phase == "moved" then
-            -- Then drag
+            
+            -- Drag
             local currentX = event.x - event.target.x
             if t.xMin > currentX then
                 t.x = t.xMin
@@ -45,17 +47,22 @@ function dragLine( event )
             else
                 t.x = currentX
             end
-            --toDots
+            
+            -- Posc Dot
             poscX = math.floor(t.x + t.xMax)
-            print(poscX)
             if poscX < 1 then
-                t.circle.y = t.toDots[1] - t.yMax
+                txt[t.txtTitle].text = 0
+                txt[t.txtDate].text = t.toDots[1].dateA .. " 00:00hrs"
+                t.dot.y = t.toDots[1].posY - t.yMax
             elseif poscX > #t.toDots then
-                t.circle.y = t.toDots[#t.toDots] - t.yMax
+                txt[t.txtTitle].text = t.toDots[#t.toDots].total
+                txt[t.txtDate].text = t.toDots[#t.toDots].dateA
+                t.dot.y = t.toDots[#t.toDots].posY - t.yMax
             else
-                t.circle.y = t.toDots[poscX] - t.yMax
+                txt[t.txtTitle].text = t.toDots[poscX].total
+                txt[t.txtDate].text = t.toDots[poscX].dateA
+                t.dot.y = t.toDots[poscX].posY - t.yMax
             end
-                
             
         elseif event.phase == "ended" or event.phase == "cancelled" then
             -- We end the movement by removing the focus from the object
@@ -74,7 +81,7 @@ end
 -- @param data datos para el chart
 -- @param size tamaño del chart 
 ------------------------------------
-function doGraph(info, data, size)
+function doGraph(info, data, size, txtTitle, txtDate)
     
     -- General Variables
     local wC = 640
@@ -99,7 +106,7 @@ function doGraph(info, data, size)
     -- Create container
     local graph = display.newContainer( wC+60, hC )
     local bg = display.newRect( 0, 0, wC+60, hC )
-    bg:setFillColor( .97 )
+    bg:setFillColor( .95 )
     graph:insert( bg )
     
     -- Array dots
@@ -116,19 +123,25 @@ function doGraph(info, data, size)
     end
     
     -- Crear posiciones en Y
-    local nextX, midX, jumpY, noX
+    local nextX, midX, jumpY, noX, dateA
     local lastX = 0
+    local lastT = 0
     local toDots = {}
     for z = 1, #data, 1 do 
         nextX = math.floor(( jumpW * z ))
         midX = math.floor((nextX - lastX) / 2) + lastX
         noX =  nextX - lastX
         jumpY = math.floor(dotsY[z+1] - dotsY[z]) /noX
+        lastT = lastT + data[z].total
+        dateA = data[z].dateAction
 
         local count = 0
         for y = lastX, nextX, 1 do 
             count = count + 1
-            toDots[y] = math.floor(count * jumpY) + dotsY[z]
+            toDots[y] = {}
+            toDots[y].total = lastT
+            toDots[y].dateA = dateA
+            toDots[y].posY = math.floor(count * jumpY) + dotsY[z]
         end
         lastX = nextX + 1
     end
@@ -175,7 +188,6 @@ function doGraph(info, data, size)
         minDot.strokeWidth = 4
         minDot.x = (xdot*(z-1)) - mwG 
         minDot.y = mhG - (ydot*(z-1)) + (fixH*(z-1))
-        --minDot.y = (minDot.y + fixH) - minDot.y 
         graph:insert( minDot )
     end 
     polygon:toFront()
@@ -203,6 +215,8 @@ function doGraph(info, data, size)
     graph.markC.toDots = toDots
     graph.markC.limX1 = mwG * -1
     graph.markC.limX2 = mwG
+    graph.markC.txtTitle = txtTitle
+    graph.markC.txtDate = txtDate
     graph:insert( graph.markC )
     local bgM = display.newRect( 0, 0, sizeMark, hC )
     bgM.alpha = .01
@@ -210,9 +224,9 @@ function doGraph(info, data, size)
     local line = display.newRect( 0, 0, 3, hC )
     line:setFillColor( .6 )
     graph.markC:insert( line )
-    graph.markC.circle = display.newCircle(  0, mhG-(info.total*jumpH), sizeMark/2 )
-    graph.markC.circle:setFillColor( unpack(cBPur) )
-    graph.markC:insert(graph.markC.circle)
+    graph.markC.dot = display.newCircle(  0, mhG-(info.total*jumpH), sizeMark/2 )
+    graph.markC.dot:setFillColor( unpack(cBPur) )
+    graph.markC:insert(graph.markC.dot)
     
     -- Listener Touch
     graph:addEventListener( "touch", dragLine )
@@ -239,50 +253,50 @@ function showResults(data)
     local posY = 180
     
     -- Afiliaciones
-    local txtTitleA = display.newText({
+    txt.TitleA = display.newText({
         text = data.newUser.total,
         x = midW - 200, y = posY + 60, width = 400,
         font = fontRegular,   
         fontSize = 120, align = "right"
     })
-    txtTitleA:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtTitleA)
+    txt.TitleA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.TitleA)
     
-    local txtSubTitleA = display.newText({
+    txt.SubTitleA = display.newText({
         text = 'afiliados',
         x = midW + 210, y = posY + 78, width = 400,
         font = fontRegular,   
         fontSize = 70, align = "left"
     })
-    txtSubTitleA:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtSubTitleA)
+    txt.SubTitleA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.SubTitleA)
     
-    local txtDateA = display.newText({
+    txt.txtDateA = display.newText({
         text = data.newUserD[#data.newUserD].dateAction,
         x = midW, y = posY + 150, width = 400,
         font = fontRegular,   
         fontSize = 28, align = "center"
     })
-    txtDateA:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtDateA)
+    txt.txtDateA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.txtDateA)
     
-    local graph = doGraph(data.newUser, data.newUserD, 'large')
+    local graph = doGraph(data.newUser, data.newUserD, 'large', 'TitleA', 'txtDateA')
     graph:translate(midW,  posY + 380)
     grpGraph:insert(graph)
     
     posY = posY + 700 
     
     -- Visitas
-    local txtTitleV = display.newText({
+    txt.TitleV = display.newText({
         text = data.points.total,
         x = midWL, y = posY, width = 400,
         font = fontRegular,   
         fontSize = 80, align = "center"
     })
-    txtTitleV:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtTitleV)
+    txt.TitleV:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.TitleV)
     
-    local txtSubTitleV = display.newText({
+    txtSubTitleV = display.newText({
         text = 'puntos otorgados',
         x = midWL, y = posY + 55, width = 400,
         font = fontRegular,   
@@ -291,49 +305,49 @@ function showResults(data)
     txtSubTitleV:setFillColor( unpack(cBlack) )
     grpGraph:insert(txtSubTitleV)
     
-    local txtDateV = display.newText({
+    txt.DateV = display.newText({
         text = data.pointsD[#data.pointsD].dateAction,
         x = midWL, y = posY + 100, width = 400,
         font = fontRegular,   
         fontSize = 24, align = "center"
     })
-    txtDateV:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtDateV)
+    txt.DateV:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.DateV)
     
-    local graph = doGraph(data.points, data.pointsD, 'medium')
+    local graph = doGraph(data.points, data.pointsD, 'medium', 'TitleV', 'DateV')
     graph:translate(midWL,  posY + 230)
     grpGraph:insert(graph)
     
     
     -- Redenciones
-    local txtTitleR = display.newText({
+    txt.TitleR = display.newText({
         text = data.redem.total,
         x = midWR, y = posY, width = 400,
         font = fontRegular,   
         fontSize = 80, align = "center"
     })
-    txtTitleR:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtTitleR)
+    txt.TitleR:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.TitleR)
     
-    local txtSubTitleR = display.newText({
+    txt.SubTitleR = display.newText({
         text = 'redenciones',
         x = midWR, y = posY + 55, width = 400,
         font = fontRegular,   
         fontSize = 32, align = "center"
     })
-    txtSubTitleR:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtSubTitleR)
+    txt.SubTitleR:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.SubTitleR)
     
-    local txtDateR = display.newText({
+    txt.DateR = display.newText({
         text = data.redemD[#data.redemD].dateAction,
         x = midWR, y = posY + 100, width = 400,
         font = fontRegular,   
         fontSize = 24, align = "center"
     })
-    txtDateR:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtDateR)
+    txt.DateR:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.DateR)
     
-    local graph = doGraph(data.redem, data.redemD, 'medium')
+    local graph = doGraph(data.redem, data.redemD, 'medium', 'TitleR', 'DateR')
     graph:translate(midWR,  posY + 230)
     grpGraph:insert(graph)
     
