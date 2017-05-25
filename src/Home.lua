@@ -17,10 +17,13 @@ local RestManager = require( "src.RestManager" )
 local screen
 local scene = composer.newScene()
 
-
 -- Variables
+local lineSel
+local idxGraph = 3
 local txt = {}
-local bullets = {}
+local graphs = {}
+local graphsD = {}
+local txtOpts = {}
 
 ---------------------------------------------------------------------------------
 -- EVENTOS
@@ -37,44 +40,98 @@ function dragLine( event )
         t.isFocus = true
     elseif t.isFocus then
         if event.phase == "moved" then
-            
-            -- Drag
-            local currentX = event.x - event.target.x
-            if t.xMin > currentX then
-                t.x = t.xMin
-            elseif t.xMax < currentX then
-                t.x = t.xMax
-            else
-                t.x = currentX
-            end
-            
-            -- Posc Dot
-            poscX = math.floor(t.x + t.xMax)
-            if poscX < 1 then
-                txt[t.txtTitle].text = 0
-                txt[t.txtDate].text = t.toDots[1].dateA .. " 00:00hrs"
-                t.dot.y = t.toDots[1].posY - t.yMax
-            elseif poscX > #t.toDots then
-                txt[t.txtTitle].text = t.toDots[#t.toDots].total
-                txt[t.txtDate].text = t.toDots[#t.toDots].dateA
-                t.dot.y = t.toDots[#t.toDots].posY - t.yMax
-            else
-                txt[t.txtTitle].text = t.toDots[poscX].total
-                txt[t.txtDate].text = t.toDots[poscX].dateA
-                t.dot.y = t.toDots[poscX].posY - t.yMax
-            end
-            
+            -- Move Dot
+            moveDot(t, event.x, event.target.x)
         elseif event.phase == "ended" or event.phase == "cancelled" then
             -- We end the movement by removing the focus from the object
+            moveDot(t, event.x, event.target.x)
             t.isFocus = false
         end
-
     end
+end
+
+-------------------------------------
+-- Cambiar 
+-- @param event objeto evento
+------------------------------------
+function tapBgSel( event )
+    local t = event.target
+    if not(idxGraph == t.idx) then
+        -- Move element
+        idxGraph = t.idx
+        transition.to( lineSel, { x = t.x, time = 300 })
+        for z = 1, #txtOpts, 1 do 
+            txtOpts[z]:setFillColor( unpack(cGray) )
+        end
+        txtOpts[t.idx]:setFillColor( unpack(cBlack) )
+        
+        -- Clear components
+        txt['TitleA']:setFillColor( unpack(cBlack) )
+        txt['txtDateA']:setFillColor( unpack(cBlack) )
+        txt['TitleV']:setFillColor( unpack(cBlack) )
+        txt['DateV']:setFillColor( unpack(cBlack) )
+        txt['TitleR']:setFillColor( unpack(cBlack) )
+        txt['DateR']:setFillColor( unpack(cBlack) )
+        transition.to( grpGraph, { alpha = 0, time = 300 })
+        
+        -- Mostrar information
+        if graphsD[idxGraph] then
+            print('showResults')
+            showResults()
+        else
+            print('getData')
+            RestManager.getData('1M')
+        end
+    end
+    return true
 end
 
 ---------------------------------------------------------------------------------
 -- FUNCIONES
 ---------------------------------------------------------------------------------
+
+-------------------------------------
+-- Cambia la posicion del marcados
+-- @param t arreglo de posiciones
+-- @param x1 posicion evento
+-- @param x2 posicion target
+------------------------------------
+function moveDot(t, x1, x2)
+     -- Drag
+    local currentX = x1 - x2
+    if t.xMin > currentX then
+        t.x = t.xMin
+    elseif t.xMax < currentX then
+        t.x = t.xMax
+    else
+        t.x = currentX
+    end
+
+    -- Posc Dot
+    poscX = math.floor(t.x + t.xMax)
+    if poscX < 1 then
+        txt[t.txtTitle].text = 0
+        txt[t.txtDate].text = t.toDots[1].dateA .. " 00:00hrs"
+        t.dot.y = t.toDots[1].posY - t.yMax
+    elseif poscX > #t.toDots then
+        txt[t.txtTitle].text = t.toDots[#t.toDots].total
+        txt[t.txtDate].text = t.toDots[#t.toDots].dateA
+        t.dot.y = t.toDots[#t.toDots].posY - t.yMax
+    else
+        txt[t.txtTitle].text = t.toDots[poscX].total
+        txt[t.txtDate].text = t.toDots[poscX].dateA
+        t.dot.y = t.toDots[poscX].posY - t.yMax
+    end
+    
+    -- Change color text
+    if t.dateBase == txt[t.txtDate].text then
+        txt[t.txtTitle]:setFillColor( unpack(cBlack) )
+        txt[t.txtDate]:setFillColor( unpack(cBlack) )
+    else
+        txt[t.txtTitle]:setFillColor( unpack(cBPur) )
+        txt[t.txtDate]:setFillColor( unpack(cBPur) )
+    end
+end
 
 -------------------------------------
 -- Crea grafica de resultados
@@ -217,6 +274,7 @@ function doGraph(info, data, size, txtTitle, txtDate)
     graph.markC.limX2 = mwG
     graph.markC.txtTitle = txtTitle
     graph.markC.txtDate = txtDate
+    graph.markC.dateBase = data[#data].dateAction
     graph:insert( graph.markC )
     local bgM = display.newRect( 0, 0, sizeMark, hC )
     bgM.alpha = .01
@@ -228,16 +286,13 @@ function doGraph(info, data, size, txtTitle, txtDate)
     graph.markC.dot:setFillColor( unpack(cBPur) )
     graph.markC:insert(graph.markC.dot)
     
+    -- Agregar info
+    txt[txtTitle].text = info.total
+    txt[txtDate].text = data[#data].dateAction
+    
     -- Listener Touch
     graph:addEventListener( "touch", dragLine )
     
-    
-    --[[
-    
-    
-    
-    
-    ]]
     return graph
 end
 
@@ -245,112 +300,38 @@ end
 -- Crea ficha de resultados
 -- @param ScrollView por llenar
 ------------------------------------
-function showResults(data)
-    
-    grpGraph = display.newGroup()
-    screen:insert( grpGraph )
+function showResults(dataWS)
+    if not(graphsD[idxGraph]) then
+        graphsD[idxGraph] = dataWS
+    end
+    local data = graphsD[idxGraph]
     
     local posY = 180
     
-    -- Afiliaciones
-    txt.TitleA = display.newText({
-        text = data.newUser.total,
-        x = midW - 200, y = posY + 60, width = 400,
-        font = fontRegular,   
-        fontSize = 120, align = "right"
-    })
-    txt.TitleA:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.TitleA)
+    for z = 1, #data, 1 do 
+        if graphs[z] then
+            graphs[z]:removeEventListener( "touch", dragLine )
+            graphs[z]:removeSelf()
+            graphs[z] = nil
+        end
+    end
     
-    txt.SubTitleA = display.newText({
-        text = 'afiliados',
-        x = midW + 210, y = posY + 78, width = 400,
-        font = fontRegular,   
-        fontSize = 70, align = "left"
-    })
-    txt.SubTitleA:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.SubTitleA)
-    
-    txt.txtDateA = display.newText({
-        text = data.newUserD[#data.newUserD].dateAction,
-        x = midW, y = posY + 150, width = 400,
-        font = fontRegular,   
-        fontSize = 28, align = "center"
-    })
-    txt.txtDateA:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.txtDateA)
-    
-    local graph = doGraph(data.newUser, data.newUserD, 'large', 'TitleA', 'txtDateA')
-    graph:translate(midW,  posY + 380)
-    grpGraph:insert(graph)
+    graphs[1] = doGraph(data.newUser, data.newUserD, 'large', 'TitleA', 'txtDateA')
+    graphs[1]:translate(midW,  posY + 380)
+    grpGraph:insert(graphs[1])
     
     posY = posY + 700 
     
-    -- Visitas
-    txt.TitleV = display.newText({
-        text = data.points.total,
-        x = midWL, y = posY, width = 400,
-        font = fontRegular,   
-        fontSize = 80, align = "center"
-    })
-    txt.TitleV:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.TitleV)
-    
-    txtSubTitleV = display.newText({
-        text = 'puntos otorgados',
-        x = midWL, y = posY + 55, width = 400,
-        font = fontRegular,   
-        fontSize = 32, align = "center"
-    })
-    txtSubTitleV:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtSubTitleV)
-    
-    txt.DateV = display.newText({
-        text = data.pointsD[#data.pointsD].dateAction,
-        x = midWL, y = posY + 100, width = 400,
-        font = fontRegular,   
-        fontSize = 24, align = "center"
-    })
-    txt.DateV:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.DateV)
-    
-    local graph = doGraph(data.points, data.pointsD, 'medium', 'TitleV', 'DateV')
-    graph:translate(midWL,  posY + 230)
-    grpGraph:insert(graph)
+    graphs[2] = doGraph(data.points, data.pointsD, 'medium', 'TitleV', 'DateV')
+    graphs[2]:translate(midWL,  posY + 230)
+    grpGraph:insert(graphs[2])
     
     
-    -- Redenciones
-    txt.TitleR = display.newText({
-        text = data.redem.total,
-        x = midWR, y = posY, width = 400,
-        font = fontRegular,   
-        fontSize = 80, align = "center"
-    })
-    txt.TitleR:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.TitleR)
+    graphs[3] = doGraph(data.redem, data.redemD, 'medium', 'TitleR', 'DateR')
+    graphs[3]:translate(midWR,  posY + 230)
+    grpGraph:insert(graphs[3])
     
-    txt.SubTitleR = display.newText({
-        text = 'redenciones',
-        x = midWR, y = posY + 55, width = 400,
-        font = fontRegular,   
-        fontSize = 32, align = "center"
-    })
-    txt.SubTitleR:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.SubTitleR)
-    
-    txt.DateR = display.newText({
-        text = data.redemD[#data.redemD].dateAction,
-        x = midWR, y = posY + 100, width = 400,
-        font = fontRegular,   
-        fontSize = 24, align = "center"
-    })
-    txt.DateR:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txt.DateR)
-    
-    local graph = doGraph(data.redem, data.redemD, 'medium', 'TitleR', 'DateR')
-    graph:translate(midWR,  posY + 230)
-    grpGraph:insert(graph)
-    
+    transition.to( grpGraph, { alpha = 1, time = 1000 })
     
 end
 
@@ -374,17 +355,22 @@ function scene:create( event )
     line:setFillColor( .9 )
     screen:insert( line )
     
-    local lineSel = display.newRect( midW+40, h+80, 70, 1 )
+    lineSel = display.newRect( midW+60, h+80, 100, 1 )
     lineSel:setFillColor( unpack(cBPur) )
     screen:insert( lineSel )
     
     -- Crear opciones
     local opts = {'Todo', '3M', '1M', '1S'}
-    local txtOpts = {}
     for z = 1, #opts, 1 do 
+    
+        local bgSel = display.newRect( (midW - 300) + (z*120), h + 100, 100, 30 )
+        bgSel.idx = z
+        screen:insert( bgSel )
+        bgSel:addEventListener( "tap", tapBgSel )
+        
         txtOpts[z] = display.newText({
             text = opts[z],
-            x = (midW - 200) + (z*80), y = h + 100, width = 300,
+            x = (midW - 300) + (z*120), y = h + 100, width = 300,
             font = fontSemiBold,   
             fontSize = 20, align = "center"
         })
@@ -393,8 +379,100 @@ function scene:create( event )
     end
     txtOpts[3]:setFillColor( unpack(cBlack) )
     
+    grpGraph = display.newGroup()
+    grpGraph.alpha = 0
+    screen:insert( grpGraph )
+    
+    local posY = 180
+    
+    -- Afiliaciones
+    txt.TitleA = display.newText({
+        text = '',
+        x = midW - 200, y = posY + 60, width = 400,
+        font = fontRegular,   
+        fontSize = 120, align = "right"
+    })
+    txt.TitleA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.TitleA)
+    
+    txt.SubTitleA = display.newText({
+        text = 'afiliados',
+        x = midW + 210, y = posY + 78, width = 400,
+        font = fontRegular,   
+        fontSize = 70, align = "left"
+    })
+    txt.SubTitleA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.SubTitleA)
+    
+    txt.txtDateA = display.newText({
+        text = '',
+        x = midW, y = posY + 150, width = 400,
+        font = fontRegular,   
+        fontSize = 28, align = "center"
+    })
+    txt.txtDateA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.txtDateA)
+    
+    posY = posY + 700 
+    
+    -- Visitas
+    txt.TitleV = display.newText({
+        text = '',
+        x = midWL, y = posY, width = 400,
+        font = fontRegular,   
+        fontSize = 80, align = "center"
+    })
+    txt.TitleV:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.TitleV)
+    
+    txtSubTitleV = display.newText({
+        text = 'puntos otorgados',
+        x = midWL, y = posY + 55, width = 400,
+        font = fontRegular,   
+        fontSize = 32, align = "center"
+    })
+    txtSubTitleV:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txtSubTitleV)
+    
+    txt.DateV = display.newText({
+        text = '',
+        x = midWL, y = posY + 100, width = 400,
+        font = fontRegular,   
+        fontSize = 24, align = "center"
+    })
+    txt.DateV:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.DateV)    
+    
+    -- Redenciones
+    txt.TitleR = display.newText({
+        text = '',
+        x = midWR, y = posY, width = 400,
+        font = fontRegular,   
+        fontSize = 80, align = "center"
+    })
+    txt.TitleR:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.TitleR)
+    
+    txt.SubTitleR = display.newText({
+        text = 'redenciones',
+        x = midWR, y = posY + 55, width = 400,
+        font = fontRegular,   
+        fontSize = 32, align = "center"
+    })
+    txt.SubTitleR:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.SubTitleR)
+    
+    txt.DateR = display.newText({
+        text = '',
+        x = midWR, y = posY + 100, width = 400,
+        font = fontRegular,   
+        fontSize = 24, align = "center"
+    })
+    txt.DateR:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.DateR)
+    
     -- Obtenemos informacion
-    RestManager.getData()
+    RestManager.getData('1M')
     
 end	
 
