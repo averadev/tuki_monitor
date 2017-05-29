@@ -25,7 +25,7 @@ local RestManager = {}
 
     
     RestManager.getData = function()
-		local url = site.."monitor/getData/format/json/idCommerce/1"
+		local url = site.."monitor/getData/format/json/idCommerce/1/range/3M"
         
         local function callback(event)
             if ( event.isError ) then
