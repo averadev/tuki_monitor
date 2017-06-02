@@ -23,6 +23,8 @@ cBBlu = { .19, 0, .29 }
 cBPur = { .26, .05, .38 }
 cBPurL = { .66, .47, .92, .5 }
 cBPurA = { .78, .66, 1, .3 }
+cBgMorA = { .27, 0, .4 }
+cBgMorB = { .39, 0, .59 }
 
 -- Fonts
 fontLight = 'Muli-Light'

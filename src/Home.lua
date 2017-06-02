@@ -76,11 +76,10 @@ function tapBgSel( event )
         
         -- Mostrar information
         if graphsD[idxGraph] then
-            print('showResults')
             showResults()
         else
             print('getData')
-            RestManager.getData('1M')
+            RestManager.getData(t.type)
         end
     end
     return true
@@ -141,30 +140,48 @@ end
 function doGraph(info, data, size, txtTitle, txtDate)
     
     -- General Variables
-    local wC = 640
+    local wC = 690
     local hC = 400
     local initX = 10
     local initY = 0
-    info.day = tonumber(info.day)
-    info.goal = tonumber(info.goal)
-    info.total = tonumber(info.total)
-    info.lastDay = tonumber(info.lastDay)
-    
-    local porcDays = info.day / info.lastDay
-    local todayGoal = math.floor(info.goal * porcDays)
-    local maxPoints = todayGoal
-    if todayGoal < info.total then maxPoints = info.total end
     
     -- Parametros para Escalar 
     if size == 'medium' then
         wC = 320
         hC = 200
     end
+    if intH < 1200 then hC = hC *.9 end
+    
     -- Create container
     local graph = display.newContainer( wC+60, hC )
     local bg = display.newRect( 0, 0, wC+60, hC )
     bg:setFillColor( .95 )
     graph:insert( bg )
+    
+    -- Cancel by not data
+    if #data == 0 or info.total == 0 then
+        txt[txtTitle].text = 0
+        txt[txtDate].text = 'No existen datos por graficar'
+        return graph
+    end
+    
+    -- Calculos
+    info.total = tonumber(info.total)
+    local todayGoal = 0
+    local maxPoints = 0
+    if info.goal then
+        info.day = tonumber(info.day)
+        info.goal = tonumber(info.goal)
+        info.lastDay = tonumber(info.lastDay)
+        
+        local porcDays = info.day / info.lastDay
+        todayGoal = math.floor(info.goal * porcDays)
+        maxPoints = todayGoal
+        if todayGoal < info.total then maxPoints = info.total end
+    else
+        todayGoal = info.total
+        maxPoints = todayGoal
+    end
     
     -- Array dots
     local jumpW = wC / (#data)
@@ -228,187 +245,27 @@ function doGraph(info, data, size, txtTitle, txtDate)
     local mhG = hC/2
     
     -- Make goal
-    local fixH = 0
-    local hGoal =  mhG - (todayGoal*jumpH)
-    if maxPoints > todayGoal then 
-        fixH = (hC - (todayGoal*jumpH))/26
-    end
-    
-    local dimens = { (mwG*(-1))/40, (mhG)/40, (mwG)/40, (hGoal)/40 }
-    local xdot = (mwG / 15)
-    local ydot = (mhG / 15)
-    for z = 1, 30, 1 do 
-        local minDot = display.newLine( unpack(dimens) )            
-        minDot:setStrokeColor( unpack(cBTur) )
-        minDot.alpha = .7
-        minDot.strokeWidth = 4
-        minDot.x = (xdot*(z-1)) - mwG 
-        minDot.y = mhG - (ydot*(z-1)) + (fixH*(z-1))
-        graph:insert( minDot )
-    end 
-    polygon:toFront()
-    
-    -- Make blocks
-    graph.width = graph.width + 20
-    graph.height = graph.height + 20
-    local block1 = display.newRect( (mwG*-1)-10, 0, 20, hC + 20 )
-    graph:insert( block1 )
-    local block2 = display.newRect( mwG+10, 0, 20, hC + 20 )
-    graph:insert( block2 )
-    local block3 = display.newRect( 0, (mhG*-1)-10, wC + 20, 20 )
-    graph:insert( block3 )
-    local block4 = display.newRect( 0, mhG+10, wC + 20, 20 )
-    graph:insert( block4 )
-    
-    -- Make mark
-    local sizeMark = 15
-    if size == 'medium' then sizeMark = 12 end
-    graph.markC = display.newContainer( sizeMark, hC + 20  )
-    graph.markC.x = mwG
-    graph.markC.xMin = mwG * -1
-    graph.markC.xMax = mwG
-    graph.markC.yMax = mhG * -1
-    graph.markC.toDots = toDots
-    graph.markC.limX1 = mwG * -1
-    graph.markC.limX2 = mwG
-    graph.markC.txtTitle = txtTitle
-    graph.markC.txtDate = txtDate
-    graph.markC.dateBase = data[#data].dateAction
-    graph:insert( graph.markC )
-    local bgM = display.newRect( 0, 0, sizeMark, hC )
-    bgM.alpha = .01
-    graph.markC:insert( bgM )
-    local line = display.newRect( 0, 0, 3, hC )
-    line:setFillColor( .6 )
-    graph.markC:insert( line )
-    graph.markC.dot = display.newCircle(  0, mhG-(info.total*jumpH), sizeMark/2 )
-    graph.markC.dot:setFillColor( unpack(cBPur) )
-    graph.markC:insert(graph.markC.dot)
-    
-    -- Agregar info
-    txt[txtTitle].text = info.total
-    txt[txtDate].text = data[#data].dateAction
-    
-    -- Listener Touch
-    graph:addEventListener( "touch", dragLine )
-    
-    return graph
-end
-
--------------------------------------
--- Crea grafica de resultados
--- @param data datos para el chart
--- @param size tamaño del chart 
-------------------------------------
-function doGoalGraph(info, data, size, txtTitle, txtDate)
-    
-    -- General Variables
-    local wC = 640
-    local hC = 400
-    local initX = 10
-    local initY = 0
-    info.day = tonumber(info.day)
-    info.goal = tonumber(info.goal)
-    info.total = tonumber(info.total)
-    info.lastDay = tonumber(info.lastDay)
-    
-    local porcDays = info.day / info.lastDay
-    local todayGoal = math.floor(info.goal * porcDays)
-    local maxPoints = todayGoal
-    if todayGoal < info.total then maxPoints = info.total end
-    
-    -- Parametros para Escalar 
-    if size == 'medium' then
-        wC = 320
-        hC = 200
-    end
-    -- Create container
-    local graph = display.newContainer( wC+60, hC )
-    local bg = display.newRect( 0, 0, wC+60, hC )
-    bg:setFillColor( .95 )
-    graph:insert( bg )
-    
-    -- Array dots
-    local jumpW = wC / (#data)
-    local jumpH = hC / maxPoints
-    local dots = {initX, initY}
-    local dotsY = {initY}
-    local newY = initY
-    for z = 1, #data, 1 do 
-        newY = newY - (data[z].total*jumpH)
-        table.insert( dots, (initX + ( jumpW * z ) ) )
-        table.insert( dots, newY )
-        table.insert( dotsY, newY )
-    end
-    
-    -- Crear posiciones en Y
-    local nextX, midX, jumpY, noX, dateA
-    local lastX = 0
-    local lastT = 0
-    local toDots = {}
-    for z = 1, #data, 1 do 
-        nextX = math.floor(( jumpW * z ))
-        midX = math.floor((nextX - lastX) / 2) + lastX
-        noX =  nextX - lastX
-        jumpY = math.floor(dotsY[z+1] - dotsY[z]) /noX
-        lastT = lastT + data[z].total
-        dateA = data[z].dateAction
-
-        local count = 0
-        for y = lastX, nextX, 1 do 
-            count = count + 1
-            toDots[y] = {}
-            toDots[y].total = lastT
-            toDots[y].dateA = dateA
-            toDots[y].posY = math.floor(count * jumpY) + dotsY[z]
+    if info.goal then
+        local fixH = 0
+        local hGoal =  mhG - (todayGoal*jumpH)
+        if maxPoints > todayGoal then 
+            fixH = (hC - (todayGoal*jumpH))/26
         end
-        lastX = nextX + 1
+
+        local dimens = { (mwG*(-1))/40, (mhG)/40, (mwG)/40, (hGoal)/40 }
+        local xdot = (mwG / 15)
+        local ydot = (mhG / 15)
+        for z = 1, 30, 1 do 
+            local minDot = display.newLine( unpack(dimens) )            
+            minDot:setStrokeColor( unpack(cBTur) )
+            minDot.alpha = .7
+            minDot.strokeWidth = 4
+            minDot.x = (xdot*(z-1)) - mwG 
+            minDot.y = mhG - (ydot*(z-1)) + (fixH*(z-1))
+            graph:insert( minDot )
+        end 
+        polygon:toFront()
     end
-    
-    -- End Shape
-    local endX = dots[#dots-1]
-    local endY = dots[#dots]
-    table.insert( dots, endX + 20)
-    table.insert( dots, endY)
-    table.insert( dots, endX + 20)
-    table.insert( dots, initY+20)
-    table.insert( dots, initX-20)
-    table.insert( dots, initY+20)
-    table.insert( dots, initX-20)
-    table.insert( dots, initY)
-    
-    -- Make polygon
-    local chPol = (hC-(info.total*jumpH))/2
-    local polygon = display.newPolygon(0, chPol+10, dots)
-    polygon:setFillColor( unpack(cBPurA)  )
-    polygon:setStrokeColor( unpack(cBPurL) )
-    polygon.strokeWidth = 6
-    graph:insert( polygon )
-    -- Ajustar graph
-    graph.width = polygon.width - 40
-    local mwG = graph.width/2
-    local mhG = hC/2
-    
-    -- Make goal
-    local fixH = 0
-    local hGoal =  mhG - (todayGoal*jumpH)
-    if maxPoints > todayGoal then 
-        fixH = (hC - (todayGoal*jumpH))/26
-    end
-    
-    local dimens = { (mwG*(-1))/40, (mhG)/40, (mwG)/40, (hGoal)/40 }
-    local xdot = (mwG / 15)
-    local ydot = (mhG / 15)
-    for z = 1, 30, 1 do 
-        local minDot = display.newLine( unpack(dimens) )            
-        minDot:setStrokeColor( unpack(cBTur) )
-        minDot.alpha = .7
-        minDot.strokeWidth = 4
-        minDot.x = (xdot*(z-1)) - mwG 
-        minDot.y = mhG - (ydot*(z-1)) + (fixH*(z-1))
-        graph:insert( minDot )
-    end 
-    polygon:toFront()
     
     -- Make blocks
     graph.width = graph.width + 20
@@ -467,9 +324,16 @@ function showResults(dataWS)
     end
     local data = graphsD[idxGraph]
     
+    -- Ajustar Y
     local posY = 180
+    if intH < 1200 then posY = 115 end
+    local addY = 0
+    if intH > 1280 then 
+        addY = (intH - 1280) / 3 
+        posY = posY + addY
+    end
     
-    for z = 1, #data, 1 do 
+    for z = 1, #graphs, 1 do 
         if graphs[z] then
             graphs[z]:removeEventListener( "touch", dragLine )
             graphs[z]:removeSelf()
@@ -481,7 +345,8 @@ function showResults(dataWS)
     graphs[1]:translate(midW,  posY + 380)
     grpGraph:insert(graphs[1])
     
-    posY = posY + 700 
+    posY = posY + 670 + addY
+    if intH < 1200 then posY = posY - 105 end
     
     graphs[2] = doGraph(data.points, data.pointsD, 'medium', 'TitleV', 'DateV')
     graphs[2]:translate(midWL,  posY + 230)
@@ -502,6 +367,11 @@ end
 ---------------------------------------------------------------------------------
 function scene:create( event )
 	screen = self.view
+    
+    local reducF = 1
+    if intH < 1200 then
+        reducF = .7
+    end
     
     local txtTitle = display.newText({
         text = 'Tuki Monitor',
@@ -526,6 +396,7 @@ function scene:create( event )
     
         local bgSel = display.newRect( (midW - 300) + (z*120), h + 100, 100, 30 )
         bgSel.idx = z
+        bgSel.type = opts[z]
         screen:insert( bgSel )
         bgSel:addEventListener( "tap", tapBgSel )
         
@@ -544,14 +415,19 @@ function scene:create( event )
     grpGraph.alpha = 0
     screen:insert( grpGraph )
     
-    local posY = 180
+    local addY = 0
+    if intH > 1280 then
+        addY = (intH - 1280) / 3
+    end
+    
+    local posY = 180 + addY
     
     -- Afiliaciones
     txt.TitleA = display.newText({
         text = '',
         x = midW - 200, y = posY + 60, width = 400,
         font = fontRegular,   
-        fontSize = 120, align = "right"
+        fontSize = 120 * reducF, align = "right"
     })
     txt.TitleA:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.TitleA)
@@ -560,7 +436,7 @@ function scene:create( event )
         text = 'afiliados',
         x = midW + 210, y = posY + 78, width = 400,
         font = fontRegular,   
-        fontSize = 70, align = "left"
+        fontSize = 70 * reducF, align = "left"
     })
     txt.SubTitleA:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.SubTitleA)
@@ -569,37 +445,37 @@ function scene:create( event )
         text = '',
         x = midW, y = posY + 150, width = 400,
         font = fontRegular,   
-        fontSize = 28, align = "center"
+        fontSize = 28 * reducF, align = "center"
     })
     txt.txtDateA:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.txtDateA)
     
-    posY = posY + 700 
+    posY = posY + 670 + addY 
     
     -- Visitas
     txt.TitleV = display.newText({
         text = '',
         x = midWL, y = posY, width = 400,
         font = fontRegular,   
-        fontSize = 80, align = "center"
+        fontSize = 80 * reducF, align = "center"
     })
     txt.TitleV:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.TitleV)
     
-    txtSubTitleV = display.newText({
+    txt.txtSubTitleV = display.newText({
         text = 'puntos otorgados',
         x = midWL, y = posY + 55, width = 400,
         font = fontRegular,   
-        fontSize = 32, align = "center"
+        fontSize = 32 * reducF, align = "center"
     })
-    txtSubTitleV:setFillColor( unpack(cBlack) )
-    grpGraph:insert(txtSubTitleV)
+    txt.txtSubTitleV:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.txtSubTitleV)
     
     txt.DateV = display.newText({
         text = '',
         x = midWL, y = posY + 100, width = 400,
         font = fontRegular,   
-        fontSize = 24, align = "center"
+        fontSize = 24 * reducF, align = "center"
     })
     txt.DateV:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.DateV)    
@@ -609,7 +485,7 @@ function scene:create( event )
         text = '',
         x = midWR, y = posY, width = 400,
         font = fontRegular,   
-        fontSize = 80, align = "center"
+        fontSize = 80 * reducF, align = "center"
     })
     txt.TitleR:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.TitleR)
@@ -618,7 +494,7 @@ function scene:create( event )
         text = 'redenciones',
         x = midWR, y = posY + 55, width = 400,
         font = fontRegular,   
-        fontSize = 32, align = "center"
+        fontSize = 32 * reducF, align = "center"
     })
     txt.SubTitleR:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.SubTitleR)
@@ -627,10 +503,28 @@ function scene:create( event )
         text = '',
         x = midWR, y = posY + 100, width = 400,
         font = fontRegular,   
-        fontSize = 24, align = "center"
+        fontSize = 24 * reducF, align = "center"
     })
     txt.DateR:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.DateR)
+    
+    print(intH)
+    if intH < 1200 then
+        txt.TitleA.y = txt.TitleA.y - 20
+        txt.SubTitleA.y = txt.SubTitleA.y - 20
+        txt.txtDateA.y = txt.txtDateA.y - 40
+        
+        txt.TitleV.y = txt.TitleV.y - 120
+        txt.txtSubTitleV.y = txt.txtSubTitleV.y - 135
+        txt.DateV.y = txt.DateV.y - 152
+        
+        txt.TitleR.y = txt.TitleR.y - 120
+        txt.SubTitleR.y = txt.SubTitleR.y - 135
+        txt.DateR.y = txt.DateR.y - 152
+        
+        local ajustY = intH - 1024
+        grpGraph.y = ajustY/4
+    end
     
     -- Obtenemos informacion
     RestManager.getData('1M')
