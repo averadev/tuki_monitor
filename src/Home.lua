@@ -11,23 +11,116 @@
 local widget = require( "widget" )
 local composer = require( "composer" )
 local Globals = require( "src.Globals" )
+local DBManager = require('src.DBManager')
 local RestManager = require( "src.RestManager" )
 
 -- Grupos y Contenedores
-local screen
+local screen, grpMain
 local scene = composer.newScene()
 
 -- Variables
-local lineSel
+local lineSel, iconCheck, bgShadow, txtTitle
 local idxGraph = 3
 local txt = {}
 local graphs = {}
 local graphsD = {}
 local txtOpts = {}
+local idBranch = 0
+local range = '1M'
 
 ---------------------------------------------------------------------------------
 -- EVENTOS
 ---------------------------------------------------------------------------------
+
+-------------------------------------
+-- Show Menu
+-- @param event objeto evento
+------------------------------------
+function showMenu( event )
+    -- Crear sombra
+    if bgShadow then
+        bgShadow:removeSelf()
+        bgShadow = nil
+    end
+    bgShadow = display.newRect( midW, h, intW, intH - h )
+    bgShadow.anchorY = 0
+    bgShadow.alpha = 0
+    bgShadow:addEventListener( "tap", hideMenu )
+    bgShadow:setFillColor( 0 )
+    grpMain:insert( bgShadow )
+    
+    -- Transicion
+    newY = intH * .1
+    transition.to( grpMain, { x = 380, y = newY, xScale = .8, yScale = .8,  time = 300 })
+    transition.to( bgShadow, { alpha = .1,  time = 300 })
+end
+
+-------------------------------------
+-- Show Menu
+-- @param event objeto evento
+------------------------------------
+function hideMenu( event )
+    if bgShadow then
+        transition.to( bgShadow, { alpha = 0,  time = 300, onComplete = function() 
+            if bgShadow then
+                bgShadow:removeSelf()
+                bgShadow = nil
+            end
+        end})
+    end
+    transition.to( grpMain, { x = 0, y = 0, xScale = 1, yScale = 1,  time = 300 })
+    return true
+end
+
+-------------------------------------
+-- Change branch
+-- @param event objeto evento
+------------------------------------
+function changeBranch( event )
+    if bgShadow then
+        local t = event.target
+        if not(iconCheck.y == t.y) then
+            iconCheck.y = t.y
+            idBranch = t.idBranch
+            txtTitle.text = t.title
+            
+            -- Eliminamos datos
+            if graphsD then
+                graphsD = nil
+                graphsD = {}
+            end
+            -- Clear components
+            txt['TitleA']:setFillColor( unpack(cBlack) )
+            txt['txtDateA']:setFillColor( unpack(cBlack) )
+            txt['TitleV']:setFillColor( unpack(cBlack) )
+            txt['DateV']:setFillColor( unpack(cBlack) )
+            txt['TitleR']:setFillColor( unpack(cBlack) )
+            txt['DateR']:setFillColor( unpack(cBlack) )
+            transition.to( grpGraph, { alpha = 0, time = 300 })
+            -- Actualizamos graficas
+            timer.performWithDelay( 400, function() 
+                if idBranch == 0 then
+                    RestManager.getData(range)
+                else
+                    RestManager.getDataBranch(range, idBranch)
+                end
+            end)
+        end
+        hideMenu()
+    end
+end
+
+-------------------------------------
+-- Change branch
+-- @param event objeto evento
+------------------------------------
+function closeSession( event )
+    if bgShadow then
+        DBManager.clearUser()
+        composer.removeScene( "src.Login" )
+        composer.gotoScene("src.Login", { effect = "fade", time = 500 })
+    end
+end
 
 -------------------------------------
 -- Drag time line
@@ -78,8 +171,12 @@ function tapBgSel( event )
         if graphsD[idxGraph] then
             showResults()
         else
-            print('getData')
-            RestManager.getData(t.type)
+            range = t.type
+            if idBranch == 0 then
+                RestManager.getData(range)
+            else
+                RestManager.getDataBranch(range, idBranch)
+            end
         end
     end
     return true
@@ -358,7 +455,83 @@ function showResults(dataWS)
     grpGraph:insert(graphs[3])
     
     transition.to( grpGraph, { alpha = 1, time = 1000 })
+end
+
+-------------------------------------
+-- Listar Sucursales en el menu
+-- @param commerce Comercio
+-- @param items Sucursales
+------------------------------------
+function showBranchs(commerce, items)
     
+    local bg = display.newRect( 200, 300, 400, 80 )
+    bg.alpha = .01
+    bg.idBranch = 0
+    bg.title = commerce
+    bg:addEventListener( "tap", changeBranch )
+    screen:insert( bg )
+    
+    iconCheck = display.newImage("img/iconCheck.png")
+    iconCheck:translate( 40, 300 )
+    screen:insert( iconCheck )
+    
+    local txtComercio = display.newText({
+        text = commerce,
+        x = 200, y = 300, width = 260,
+        font = fontBold,   
+        fontSize = 32, align = "left"
+    })
+    txtComercio:setFillColor( .2 )
+    screen:insert(txtComercio)
+    
+    local menuY = 300
+    for z = 1, #items, 1 do 
+        menuY = menuY + 100
+    
+        local ln = display.newLine( 0, menuY - 50, 400, menuY - 50 )
+        ln:setStrokeColor( .2 )
+        ln.alpha = .5
+        ln.strokeWidth = 2
+        screen:insert(ln)
+        
+        local bg = display.newRect( 200, menuY, 400, 80 )
+        bg.alpha = .01
+        bg.idBranch = items[z].id
+        bg.title = items[z].name
+        bg:addEventListener( "tap", changeBranch )
+        screen:insert( bg )
+        
+        local txtComercio = display.newText({
+            text = items[z].name,
+            x = 200, y = menuY, width = 260,
+            font = fontSemiBold,   
+            fontSize = 28, align = "left"
+        })
+        txtComercio:setFillColor( .2 )
+        screen:insert(txtComercio)
+    end
+    
+    -- Cerrar Session
+    local bg = display.newRect( 200, intH - 50, 400, 80 )
+    bg.alpha = .01
+    bg:addEventListener( "tap", closeSession )
+    screen:insert( bg )
+    
+    local iconSession = display.newImage("img/iconSession.png")
+    iconSession:translate( 40, intH - 50 )
+    screen:insert( iconSession )
+    
+    local txtSession = display.newText({
+        text = 'Cerrar Sessión',
+        x = 200, y = intH - 50, width = 240,
+        font = fontSemiBold,   
+        fontSize = 28, align = "left"
+    })
+    txtSession:setFillColor( .2 )
+    screen:insert(txtSession)
+    
+    -- Pasamos al frente
+    grpMain:toFront()
 end
 
 
@@ -373,22 +546,50 @@ function scene:create( event )
         reducF = .7
     end
     
-    local txtTitle = display.newText({
-        text = 'Tuki Monitor',
-        x = midW, y = h + 30, width = 300,
-        font = fontSemiBold,   
-        fontSize = 28, align = "center"
+    local bgMenu = display.newRect( midW, h, intW, intH )
+    bgMenu.anchorY = 0
+    bgMenu:setFillColor( {
+        type = 'gradient',
+        color1 = { .77, .66, .83 }, 
+        color2 = { .86, .86, .86 },
+        direction = "bottom"
+    } )
+    screen:insert( bgMenu )
+    
+    local logoWhiteMin = display.newImage("img/logoWhiteMin.png")
+    logoWhiteMin:translate( 180, 130 )
+    screen:insert( logoWhiteMin )
+    
+    grpMain = display.newGroup()
+    screen:insert( grpMain )
+    
+    local bgMain = display.newRect( midW, h, intW, intH - h )
+    bgMain.anchorY = 0
+    bgMain:setFillColor( 1 )
+    grpMain:insert( bgMain )
+    
+    local iconMenu = display.newImage("img/iconMenu.png")
+    iconMenu:translate( 55, 60 )
+    iconMenu:addEventListener( "tap", showMenu )
+    grpMain:insert( iconMenu )
+    
+    dbConfig = DBManager.getSettings()
+    txtTitle = display.newText({
+        text = dbConfig.commerce,
+        x = midW, y = h + 30, width = 600,
+        font = fontBold,   
+        fontSize = 32, align = "center"
     })
     txtTitle:setFillColor( unpack(cBPur) )
-    screen:insert(txtTitle)
+    grpMain:insert(txtTitle)
     
     local line = display.newRect( midW, h+80, 700, 1 )
     line:setFillColor( .9 )
-    screen:insert( line )
+    grpMain:insert( line )
     
     lineSel = display.newRect( midW+60, h+80, 100, 1 )
     lineSel:setFillColor( unpack(cBPur) )
-    screen:insert( lineSel )
+    grpMain:insert( lineSel )
     
     -- Crear opciones
     local opts = {'Todo', '3M', '1M', '1S'}
@@ -397,7 +598,7 @@ function scene:create( event )
         local bgSel = display.newRect( (midW - 300) + (z*120), h + 100, 100, 30 )
         bgSel.idx = z
         bgSel.type = opts[z]
-        screen:insert( bgSel )
+        grpMain:insert( bgSel )
         bgSel:addEventListener( "tap", tapBgSel )
         
         txtOpts[z] = display.newText({
@@ -407,13 +608,13 @@ function scene:create( event )
             fontSize = 20, align = "center"
         })
         txtOpts[z]:setFillColor( unpack(cGray) )
-        screen:insert(txtOpts[z])
+        grpMain:insert(txtOpts[z])
     end
     txtOpts[3]:setFillColor( unpack(cBlack) )
     
     grpGraph = display.newGroup()
     grpGraph.alpha = 0
-    screen:insert( grpGraph )
+    grpMain:insert( grpGraph )
     
     local addY = 0
     if intH > 1280 then
@@ -527,6 +728,7 @@ function scene:create( event )
     end
     
     -- Obtenemos informacion
+    RestManager.getBranchs()
     RestManager.getData('1M')
     
 end	

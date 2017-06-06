@@ -79,7 +79,7 @@ end
 function toHome()
     backTxtPositions()
     composer.removeScene( "src.Home" )
-    composer.gotoScene("src.Home", { time = 0 })
+    composer.gotoScene("src.Home", { effect = "fade", time = 500 })
     return true
 end
 

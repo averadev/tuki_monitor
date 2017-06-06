@@ -38,7 +38,7 @@ local RestManager = {}
     end
 
     RestManager.verifyUser = function(email, pass)
-		local url = site.."monitor/verifyUser/format/json/email/"..urlencode(email).."/pass/"..urlencode(pass)
+        local url = site.."monitor/verifyUser/format/json/email/"..urlencode(email).."/pass/"..urlencode(pass)
         print(url)
         local function callback(event)
             if ( event.isError ) then
@@ -56,10 +56,47 @@ local RestManager = {}
         -- Do request
         network.request( url, "GET", callback )
 	end
+
+    RestManager.getBranchs = function()
+        local dbConfig = DBManager.getSettings()
+		local url = site.."monitor/getBranchs/format/json/idCommerce/"..dbConfig.idCommerce
+        
+        local function callback(event)
+            if ( event.isError ) then
+            else
+                local data = json.decode(event.response)
+                if data.success then
+                    showBranchs(dbConfig.commerce, data.items)
+                end
+            end
+            return true
+        end
+        -- Do request
+        network.request( url, "GET", callback )
+	end
     
     RestManager.getData = function(range)
-		local url = site.."monitor/getData/format/json/idCommerce/1/range/"..range
-        
+        local dbConfig = DBManager.getSettings()	
+		local url = site.."monitor/getData/format/json/idCommerce/"..dbConfig.idCommerce.."/range/"..range
+        print(url)
+        local function callback(event)
+            if ( event.isError ) then
+            else
+                local data = json.decode(event.response)
+                if data.success then
+                    showResults(data)
+                end
+            end
+            return true
+        end
+        -- Do request
+        network.request( url, "GET", callback )
+	end
+    
+    RestManager.getDataBranch = function(range, idBranch)
+        local dbConfig = DBManager.getSettings()	
+		local url = site.."monitor/getData/format/json/idBranch/"..idBranch.."/range/"..range
+        print(url)
         local function callback(event)
             if ( event.isError ) then
             else

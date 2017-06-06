@@ -43,6 +43,15 @@ local dbManager = {}
 	end
 
     -- Actualiza login
+    dbManager.clearUser = function(user)
+		openConnection( )
+        local query = "UPDATE config SET id = 0, name = '', idCommerce = 0, commerce = ''"
+        
+        db:exec( query )
+		closeConnection( )
+	end
+
+    -- Actualiza login
     dbManager.updateUser = function(user)
 		openConnection( )
         local query = "UPDATE config SET id = "..user.id..", name = '"..user.name.."', idCommerce = "..user.idCommerce..", commerce = '"..user.comercio.."'"
