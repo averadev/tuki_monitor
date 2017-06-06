@@ -485,32 +485,33 @@ function showBranchs(commerce, items)
     screen:insert(txtComercio)
     
     local menuY = 300
-    for z = 1, #items, 1 do 
-        menuY = menuY + 100
-    
-        local ln = display.newLine( 0, menuY - 50, 400, menuY - 50 )
-        ln:setStrokeColor( .2 )
-        ln.alpha = .5
-        ln.strokeWidth = 2
-        screen:insert(ln)
-        
-        local bg = display.newRect( 200, menuY, 400, 80 )
-        bg.alpha = .01
-        bg.idBranch = items[z].id
-        bg.title = items[z].name
-        bg:addEventListener( "tap", changeBranch )
-        screen:insert( bg )
-        
-        local txtComercio = display.newText({
-            text = items[z].name,
-            x = 200, y = menuY, width = 260,
-            font = fontSemiBold,   
-            fontSize = 28, align = "left"
-        })
-        txtComercio:setFillColor( .2 )
-        screen:insert(txtComercio)
+    if (false) then
+        for z = 1, #items, 1 do 
+            menuY = menuY + 100
+
+            local ln = display.newLine( 0, menuY - 50, 400, menuY - 50 )
+            ln:setStrokeColor( .2 )
+            ln.alpha = .5
+            ln.strokeWidth = 2
+            screen:insert(ln)
+
+            local bg = display.newRect( 200, menuY, 400, 80 )
+            bg.alpha = .01
+            bg.idBranch = items[z].id
+            bg.title = items[z].name
+            bg:addEventListener( "tap", changeBranch )
+            screen:insert( bg )
+
+            local txtComercio = display.newText({
+                text = items[z].name,
+                x = 200, y = menuY, width = 260,
+                font = fontSemiBold,   
+                fontSize = 28, align = "left"
+            })
+            txtComercio:setFillColor( .2 )
+            screen:insert(txtComercio)
+        end
     end
-    
     -- Cerrar Session
     local bg = display.newRect( 200, intH - 50, 400, 80 )
     bg.alpha = .01
