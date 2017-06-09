@@ -442,6 +442,14 @@ function showResults(dataWS)
     graphs[1]:translate(midW,  posY + 380)
     grpGraph:insert(graphs[1])
     
+    if data.newUser.pending then
+        graphs[1].y = graphs[1].y + 18
+        txt['pendingA'].text = "* "..data.newUser.pending .. " usuarios afiliados sin visitas a alguna sucursal"
+    else
+        txt['pendingA'].text = ''
+    end
+    
+    
     posY = posY + 670 + addY
     if intH < 1200 then posY = posY - 105 end
     
@@ -462,21 +470,31 @@ end
 -- @param commerce Comercio
 -- @param items Sucursales
 ------------------------------------
-function showBranchs(commerce, items)
+function showBranchs(dbConfig, items)
     
     local bg = display.newRect( 200, 300, 400, 80 )
     bg.alpha = .01
     bg.idBranch = 0
-    bg.title = commerce
-    bg:addEventListener( "tap", changeBranch )
+    bg.title = dbConfig.commerce
     screen:insert( bg )
     
     iconCheck = display.newImage("img/iconCheck.png")
     iconCheck:translate( 40, 300 )
     screen:insert( iconCheck )
     
+    -- Modificamos menu por usuario de sucursal
+    if dbConfig.idBranch == 0 then
+        bg:addEventListener( "tap", changeBranch )
+    else
+        items = {}
+        items[1] = {}
+        items[1].id = dbConfig.idBranch
+        items[1].name = dbConfig.branch
+        iconCheck.y = 400
+    end
+    
     local txtComercio = display.newText({
-        text = commerce,
+        text = dbConfig.commerce,
         x = 200, y = 300, width = 260,
         font = fontBold,   
         fontSize = 32, align = "left"
@@ -485,7 +503,7 @@ function showBranchs(commerce, items)
     screen:insert(txtComercio)
     
     local menuY = 300
-    if (false) then
+    if #items > 1 or dbConfig.idBranch > 0 then
         for z = 1, #items, 1 do 
             menuY = menuY + 100
 
@@ -583,6 +601,9 @@ function scene:create( event )
     })
     txtTitle:setFillColor( unpack(cBPur) )
     grpMain:insert(txtTitle)
+    if dbConfig.idBranch > 0 then
+        txtTitle.text = dbConfig.branch
+    end
     
     local line = display.newRect( midW, h+80, 700, 1 )
     line:setFillColor( .9 )
@@ -652,6 +673,15 @@ function scene:create( event )
     txt.txtDateA:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.txtDateA)
     
+    txt.pendingA = display.newText({
+        text = 'pendientes por asignar sucursal',
+        x = midW, y = posY + 175, width = 700,
+        font = fontRegular,   
+        fontSize = 24 * reducF, align = "center"
+    })
+    txt.pendingA:setFillColor( unpack(cBlack) )
+    grpGraph:insert(txt.pendingA)
+    
     posY = posY + 670 + addY 
     
     -- Visitas
@@ -710,11 +740,12 @@ function scene:create( event )
     txt.DateR:setFillColor( unpack(cBlack) )
     grpGraph:insert(txt.DateR)
     
-    print(intH)
+    
     if intH < 1200 then
         txt.TitleA.y = txt.TitleA.y - 20
         txt.SubTitleA.y = txt.SubTitleA.y - 20
         txt.txtDateA.y = txt.txtDateA.y - 40
+        txt.pendingA.y = txt.pendingA.y - 43
         
         txt.TitleV.y = txt.TitleV.y - 120
         txt.txtSubTitleV.y = txt.txtSubTitleV.y - 135
@@ -730,7 +761,13 @@ function scene:create( event )
     
     -- Obtenemos informacion
     RestManager.getBranchs()
-    RestManager.getData('1M')
+    -- Obtenemos datos del comerio o sucursal
+    if dbConfig.idBranch == 0 then
+        RestManager.getData('1M')
+    else
+        idBranch = dbConfig.idBranch
+        RestManager.getDataBranch('1M', idBranch)
+    end
     
 end	
 

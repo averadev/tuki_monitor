@@ -12,8 +12,8 @@ local RestManager = {}
 	local crypto = require("crypto")
     local DBManager = require('src.DBManager')
 
-    --local site = "http://192.168.1.70/tuki_ws/"
-	local site = "http://mytuki.com/api/"
+    local site = "http://192.168.1.70/tuki_ws/"
+	--local site = "http://mytuki.com/api/"
 
 	function urlencode(str)
           if (str) then
@@ -66,7 +66,7 @@ local RestManager = {}
             else
                 local data = json.decode(event.response)
                 if data.success then
-                    showBranchs(dbConfig.commerce, data.items)
+                    showBranchs(dbConfig, data.items)
                 end
             end
             return true
@@ -95,7 +95,7 @@ local RestManager = {}
     
     RestManager.getDataBranch = function(range, idBranch)
         local dbConfig = DBManager.getSettings()	
-		local url = site.."monitor/getData/format/json/idBranch/"..idBranch.."/range/"..range
+		local url = site.."monitor/getData/format/json/idCommerce/"..dbConfig.idCommerce.."/idBranch/"..idBranch.."/range/"..range
         print(url)
         local function callback(event)
             if ( event.isError ) then

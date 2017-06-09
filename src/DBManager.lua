@@ -45,7 +45,7 @@ local dbManager = {}
     -- Actualiza login
     dbManager.clearUser = function(user)
 		openConnection( )
-        local query = "UPDATE config SET id = 0, name = '', idCommerce = 0, commerce = ''"
+        local query = "UPDATE config SET id = 0, name = '', idCommerce = 0, commerce = '', idBranch = 0, branch = ''"
         
         db:exec( query )
 		closeConnection( )
@@ -55,6 +55,10 @@ local dbManager = {}
     dbManager.updateUser = function(user)
 		openConnection( )
         local query = "UPDATE config SET id = "..user.id..", name = '"..user.name.."', idCommerce = "..user.idCommerce..", commerce = '"..user.comercio.."'"
+    
+        if user.idBranch then
+            query = query .. ", idBranch = "..user.idBranch..", branch = '"..user.branch.."'"
+        end
         
         db:exec( query )
 		closeConnection( )
@@ -64,7 +68,7 @@ local dbManager = {}
 	dbManager.setupSquema = function()
 		openConnection( )
 		
-		local query = "CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY, name TEXT, idCommerce INTEGER, commerce TEXT);"
+		local query = "CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY, name TEXT, idCommerce INTEGER, commerce TEXT, idBranch INTEGER, branch TEXT);"
 		db:exec( query )
     
         for row in db:nrows("SELECT * FROM config;") do
@@ -72,7 +76,7 @@ local dbManager = {}
 			do return end
 		end
     
-        query = "INSERT INTO config VALUES (0, '', 0, '');"
+        query = "INSERT INTO config VALUES (0, '', 0, '', 0, '');"
         
 		db:exec( query )
     
