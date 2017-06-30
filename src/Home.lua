@@ -168,10 +168,10 @@ function tapBgSel( event )
         transition.to( grpGraph, { alpha = 0, time = 300 })
         
         -- Mostrar information
+        range = t.type
         if graphsD[idxGraph] then
             showResults()
         else
-            range = t.type
             if idBranch == 0 then
                 RestManager.getData(range)
             else

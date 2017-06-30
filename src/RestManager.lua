@@ -12,8 +12,8 @@ local RestManager = {}
 	local crypto = require("crypto")
     local DBManager = require('src.DBManager')
 
-    local site = "http://192.168.1.70/tuki_ws/"
-	--local site = "http://mytuki.com/api/"
+    --local site = "http://localhost/tuki_ws/"
+	local site = "http://mytuki.com/api/"
 
 	function urlencode(str)
           if (str) then
