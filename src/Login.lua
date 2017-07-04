@@ -12,6 +12,7 @@ local widget = require( "widget" )
 local composer = require( "composer" )
 local Globals = require( "src.Globals" )
 local RestManager = require( "src.RestManager" )
+local DBManager = require('src.DBManager')
 
 -- Grupos y Contenedores
 local screen
@@ -88,15 +89,8 @@ end
 -- @param event objeto evento
 ------------------------------------
 function verifyKey(event)
-    if not (txtSignUser.text == "") and not (txtSignPass.text == "") then
-        if RestManager.networkConnection() then
-            RestManager.verifyUser(txtSignUser.text, txtSignPass.text)
-        else
-            showMsg("Asegurese de estar conectado a internet")
-        end
-    else
-        showMsg("Ingrese el usuario y password")
-    end
+    DBManager.updateUser('')
+    toHome()
     return true
     --backTxtPositions()
 end

@@ -54,11 +54,8 @@ local dbManager = {}
     -- Actualiza login
     dbManager.updateUser = function(user)
 		openConnection( )
-        local query = "UPDATE config SET id = "..user.id..", name = '"..user.name.."', idCommerce = "..user.idCommerce..", commerce = '"..user.comercio.."'"
-    
-        if user.idBranch then
-            query = query .. ", idBranch = "..user.idBranch..", branch = '"..user.branch.."'"
-        end
+        
+        local query = "UPDATE config SET id = 1, name = 'Administrador', idCommerce = 1, commerce = 'Comercio'"
         
         db:exec( query )
 		closeConnection( )

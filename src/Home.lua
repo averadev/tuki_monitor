@@ -576,7 +576,7 @@ function scene:create( event )
     screen:insert( bgMenu )
     
     local logoWhiteMin = display.newImage("img/logoWhiteMin.png")
-    logoWhiteMin:translate( 180, 130 )
+    logoWhiteMin:translate( 180, h + 100 )
     screen:insert( logoWhiteMin )
     
     grpMain = display.newGroup()
@@ -588,14 +588,14 @@ function scene:create( event )
     grpMain:insert( bgMain )
     
     local iconMenu = display.newImage("img/iconMenu.png")
-    iconMenu:translate( 55, 60 )
+    iconMenu:translate( 55, h + 35 )
     iconMenu:addEventListener( "tap", showMenu )
     grpMain:insert( iconMenu )
     
     dbConfig = DBManager.getSettings()
     txtTitle = display.newText({
         text = dbConfig.commerce,
-        x = midW, y = h + 30, width = 600,
+        x = midW, y = h + 35, width = 600,
         font = fontBold,   
         fontSize = 32, align = "center"
     })
